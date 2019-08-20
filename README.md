@@ -1,6 +1,6 @@
 # jambonz-mw-registrar [![Build Status](https://secure.travis-ci.org/jambonz/jambonz-mw-registrar.png)](http://travis-ci.org/jambonz/jambonz-mw-registrar)
 
-Jambonz middleware that handles inserting, removing, and querying the database of active sip registrations
+Jambonz class that handles inserting, removing, and querying the database of active sip registrations
 
 ```
 const Registrar = require('jambonz-mw-registrar');
