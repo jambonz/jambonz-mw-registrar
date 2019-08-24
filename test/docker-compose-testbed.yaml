@@ -5,7 +5,7 @@ networks:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.39.0.0/16
+        - subnet: 172.36.0.0/16
 
 services:
   redis:
@@ -14,4 +14,4 @@ services:
       - "16379:6379/tcp"
     networks:
       jambonz:
-        ipv4_address: 172.39.0.10
+        ipv4_address: 172.36.0.10

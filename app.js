@@ -5,12 +5,13 @@ bluebird.promisifyAll(redis.RedisClient.prototype);
 bluebird.promisifyAll(redis.Multi.prototype);
 const redisOpts = Object.assign('test' === process.env.NODE_ENV ?
   {
-    retry_strategy: (options) => { return undefined },
+    retry_strategy: (options) => { return undefined; },
     disable_resubscribing: true
   } :
   {}
 );
 const noop = () => {};
+const debug = require('debug')('jambonz:middleware');
 
 function makeUserKey(aor) {
   return `user:${aor}`;
@@ -23,9 +24,9 @@ class Registrar extends Emitter {
       opts = logger;
       logger = Object.create(null);
       logger.info = logger.debug = noop;
-    
     }
     this.logger = logger;
+    debug(`connecting to redis with options: ${JSON.stringify(opts)}`);
     this.client = redis.createClient(Object.assign(redisOpts, opts));
     ['ready', 'connect', 'reconnecting', 'error', 'end', 'warning']
       .forEach((event) => {
@@ -44,6 +45,7 @@ class Registrar extends Emitter {
    */
   async add(aor, contact, sbcAddress, protocol, expires) {
     this.logger.info(`Registrar#add ${aor} from ${protocol}/${contact} for ${expires}`);
+    debug(`Registrar#add ${aor} from ${protocol}/${contact} for ${expires}`);
     const key = makeUserKey(aor);
     try {
       const result = await this.client
@@ -52,6 +54,7 @@ class Registrar extends Emitter {
         .expire(key, expires)
         .execAsync();
       this.logger.info(`Registrar#add - result of adding ${aor}: ${result}`);
+      debug(`Registrar#add - result of adding ${aor}: ${result}`);
       return result[0] === 'OK';
     } catch (err) {
       this.logger.error(err, `Error adding user ${aor}`);
@@ -69,6 +72,7 @@ class Registrar extends Emitter {
     const key = makeUserKey(aor);
     const result = await this.client.hgetallAsync(key);
     this.logger.info(`Registrar#query: ${aor} returned ${JSON.stringify(result)}`);
+    debug(`Registrar#query: ${aor} returned ${JSON.stringify(result)}`);
     return result;
   }
 
@@ -82,10 +86,12 @@ class Registrar extends Emitter {
     this.logger.info(`Registrar#remove ${aor}`);
     try {
       const result = await this.client.delAsync(key);
+      debug(`Registrar#remove ${aor} result: ${result}`);
       return result === 1;
     } catch (err) {
-        this.logger.error(err, `Error removing aor ${aor}`);
-        return false;
+      this.logger.error(err, `Error removing aor ${aor}`);
+      debug(err, `Error removing aor ${aor}`);
+      return false;
     }
   }
 }
