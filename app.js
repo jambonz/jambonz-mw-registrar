@@ -6,9 +6,12 @@ bluebird.promisifyAll(redis.Multi.prototype);
 const redisOpts = Object.assign('test' === process.env.NODE_ENV ?
   {
     retry_strategy: (options) => { return undefined; },
-    disable_resubscribing: true
+    disable_resubscribing: true,
+    prefix: 'jb:'
   } :
-  {}
+  {
+    prefix: 'jb:'
+  }
 );
 const noop = () => {};
 const debug = require('debug')('jambonz:middleware');
@@ -92,6 +95,19 @@ class Registrar extends Emitter {
       this.logger.error(err, `Error removing aor ${aor}`);
       debug(err, `Error removing aor ${aor}`);
       return false;
+    }
+  }
+
+  async keys(prefix) {
+    try {
+      prefix = prefix || '*';
+      const result = await this.client.keysAsync(prefix);
+      debug(`keys ${prefix}: ${JSON.stringify(result)}`);
+      return result;
+    } catch (err) {
+      this.logger.error(err, `Error keys ${prefix}`);
+      debug(err, `Error keys prefix ${prefix}`);
+      return null;
     }
   }
 }

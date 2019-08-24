@@ -1,5 +1,5 @@
 const test = require('blue-tape');
-const debug = require('debug')('drachtio:jambonz');
+const debug = require('debug')('jambonz:middleware');
 
 process.on('unhandledRejection', (reason, p) => {
   console.log('Unhandled Rejection at: Promise', p, 'reason:', reason);
@@ -25,7 +25,11 @@ test('registrar tests', (t) => {
       return registrar.add('dhorton@drachtio.org', '10.10.1.1', '192.168.1.1', 'udp', 2);
     })
     .then((result) => {
-      return t.ok(result, 'successfully added an address-of record to registrar with expires 2');
+      return registrar.keys();
+    })
+    .then((result) => {
+      t.ok(result, 'successfully added an address-of record to registrar with expires 2');
+      return t.ok(`keys are now ${result}`);s
     })
     .then(() => {
       return registrar.query('dhorton@drachtio.org');
