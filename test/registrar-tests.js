@@ -22,7 +22,11 @@ test('registrar tests', (t) => {
       return t.pass('connected to redis');
     })
     .then(() => {
-      return registrar.add('dhorton@drachtio.org', '10.10.1.1', '192.168.1.1', 'udp', 2);
+      return registrar.add('dhorton@drachtio.org', {
+        contact: '10.10.1.1',
+        sbcAddress: '192.168.1.1',
+        protocol: 'udp'
+      }, 2);
     })
     .then((result) => {
       return registrar.keys();
@@ -46,7 +50,11 @@ test('registrar tests', (t) => {
       t.ok(item === null, `address-of-record was removed after 2 secs`);
     })
     .then(() => {
-      return registrar.add('dhorton@drachtio.org', '10.10.1.1', '192.168.1.1', 'udp', 2);
+      return registrar.add('dhorton@drachtio.org', {
+        contact: '10.10.1.1',
+        sbcAddress: '192.168.1.1',
+        protocol: 'udp'
+      }, 2);
     })
     .then((result) => {
       return t.ok(result, 'successfully re-added aor');

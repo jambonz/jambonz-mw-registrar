@@ -46,14 +46,14 @@ class Registrar extends Emitter {
    * @param {String} expires - number of seconds the registration for this user is active
    * @returns {Boolean} true if the registration was successfully added
    */
-  async add(aor, contact, sbcAddress, protocol, expires) {
-    this.logger.info(`Registrar#add ${aor} from ${protocol}/${contact} for ${expires}`);
-    debug(`Registrar#add ${aor} from ${protocol}/${contact} for ${expires}`);
+  async add(aor, obj, expires) {
+    this.logger.info(obj, `Registrar#add ${aor} for ${expires}`);
+    debug(`Registrar#add ${aor} from ${JSON.stringify(obj)} for ${expires}`);
     const key = makeUserKey(aor);
     try {
       const result = await this.client
         .multi()
-        .hmset(key, {contact, sbcAddress, protocol})
+        .hmset(key, obj)
         .expire(key, expires)
         .execAsync();
       this.logger.info(`Registrar#add - result of adding ${aor}: ${result}`);
