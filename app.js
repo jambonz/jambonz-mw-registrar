@@ -6,12 +6,8 @@ bluebird.promisifyAll(redis.Multi.prototype);
 const redisOpts = Object.assign('test' === process.env.NODE_ENV ?
   {
     retry_strategy: (options) => { return undefined; },
-    disable_resubscribing: true,
-    prefix: 'jb:'
-  } :
-  {
-    prefix: 'jb:'
-  }
+    disable_resubscribing: true
+  } : {}
 );
 const noop = () => {};
 const debug = require('debug')('jambonz:middleware');
@@ -108,6 +104,16 @@ class Registrar extends Emitter {
       this.logger.error(err, `Error keys ${prefix}`);
       debug(err, `Error keys prefix ${prefix}`);
       return null;
+    }
+  }
+
+  // TODO: change to use SCAN for performance
+  async getCountOfUsers() {
+    try {
+      const result = await this.client.keysAsync('user:');
+      return result.length;
+    } catch (err) {
+      this.logger.error(err, 'Error retrieving registered users');
     }
   }
 }
