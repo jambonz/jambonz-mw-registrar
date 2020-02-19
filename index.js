@@ -10,7 +10,7 @@ const redisOpts = Object.assign('test' === process.env.NODE_ENV ?
   } : {}
 );
 const noop = () => {};
-const debug = require('debug')('jambonz:middleware');
+const debug = require('debug')('jambonz:mw-registrar');
 
 function makeUserKey(aor) {
   return `user:${aor}`;
@@ -43,7 +43,6 @@ class Registrar extends Emitter {
    * @returns {Boolean} true if the registration was successfully added
    */
   async add(aor, obj, expires) {
-    this.logger.info(obj, `Registrar#add ${aor} for ${expires}`);
     debug(`Registrar#add ${aor} from ${JSON.stringify(obj)} for ${expires}`);
     const key = makeUserKey(aor);
     try {
@@ -52,8 +51,7 @@ class Registrar extends Emitter {
         .hmset(key, obj)
         .expire(key, expires)
         .execAsync();
-      this.logger.info(`Registrar#add - result of adding ${aor}: ${result}`);
-      debug(`Registrar#add - result of adding ${aor}: ${result}`);
+      debug(`Registrar#add - result of adding ${aor}: ${JSON.stringify(result)}`);
       return result[0] === 'OK';
     } catch (err) {
       this.logger.error(err, `Error adding user ${aor}`);
@@ -70,7 +68,6 @@ class Registrar extends Emitter {
   async query(aor) {
     const key = makeUserKey(aor);
     const result = await this.client.hgetallAsync(key);
-    this.logger.info(`Registrar#query: ${aor} returned ${JSON.stringify(result)}`);
     debug(`Registrar#query: ${aor} returned ${JSON.stringify(result)}`);
     return result;
   }
@@ -82,14 +79,13 @@ class Registrar extends Emitter {
   */
   async remove(aor) {
     const key = makeUserKey(aor);
-    this.logger.info(`Registrar#remove ${aor}`);
+    debug(`Registrar#remove ${aor}`);
     try {
       const result = await this.client.delAsync(key);
       debug(`Registrar#remove ${aor} result: ${result}`);
       return result === 1;
     } catch (err) {
       this.logger.error(err, `Error removing aor ${aor}`);
-      debug(err, `Error removing aor ${aor}`);
       return false;
     }
   }

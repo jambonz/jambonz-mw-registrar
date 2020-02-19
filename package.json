@@ -1,8 +1,8 @@
 {
   "name": "jambonz-mw-registrar",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "jambonz middleware that provides access to the database of active registrations maintained as part of the SBC function",
-  "main": "app.js",
+  "main": "index.js",
   "scripts": {
     "test": "NODE_ENV=test node test/ | ./node_modules/.bin/tap-spec",
     "coverage": "./node_modules/.bin/nyc --reporter html --report-dir ./coverage npm run test",
