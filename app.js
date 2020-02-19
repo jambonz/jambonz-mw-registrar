@@ -110,7 +110,7 @@ class Registrar extends Emitter {
   // TODO: change to use SCAN for performance
   async getCountOfUsers() {
     try {
-      const result = await this.client.keysAsync('user:');
+      const result = await this.client.keysAsync('user:*');
       return result.length;
     } catch (err) {
       this.logger.error(err, 'Error retrieving registered users');
