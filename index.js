@@ -2,7 +2,7 @@ const debug = require('debug')('jambonz:mw-registrar');
 const assert = require('assert');
 const Emitter = require('events');
 const promisifyRedis = require('@jambonz/promisify-redis');
-const redis = promisifyRedis(require('redis'));
+const redis = require('redis');
 const redisOpts = Object.assign('test' === process.env.NODE_ENV ?
   {
     retry_strategy: () => {},
@@ -28,7 +28,7 @@ class Registrar extends Emitter {
     }
     this.logger = logger;
     debug(`connecting to redis with options: ${JSON.stringify(opts)}`);
-    this.client = redis.createClient(Object.assign(redisOpts, opts));
+    this.client = promisifyRedis(redis.createClient(Object.assign(redisOpts, opts)));
     ['ready', 'connect', 'reconnecting', 'error', 'end', 'warning']
       .forEach((event) => {
         this.client.on(event, (...args) => this.emit(event, ...args));
