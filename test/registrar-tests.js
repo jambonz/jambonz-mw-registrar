@@ -41,6 +41,13 @@ test('registrar tests', (t) => {
       return;
     })
     .then(() => {
+      return registrar.getCountOfUsers();
+    })
+    .then((count) => {
+      t.ok(count === 1, 'count of users in realm returned 1');
+      return;
+    })
+    .then(() => {
       return registrar.query('dhorton@drachtio.org');
     })
     .then((item) => {
@@ -59,6 +66,13 @@ test('registrar tests', (t) => {
     })
     .then((count) => {
       t.ok(count === 0, 'count of users in realm returned 0');
+      return;
+    })
+    .then(() => {
+      return registrar.getCountOfUsers();
+    })
+    .then((count) => {
+      t.ok(count === 0, 'count of total users returned 0');
       return;
     })
     .then(() => {

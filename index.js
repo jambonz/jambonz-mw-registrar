@@ -1,5 +1,4 @@
 const debug = require('debug')('jambonz:mw-registrar');
-const assert = require('assert');
 const Emitter = require('events');
 const promisifyRedis = require('@jambonz/promisify-redis');
 const redis = require('redis');
@@ -15,7 +14,7 @@ function makeUserKey(aor) {
   return `user:${aor}`;
 }
 function makeUserPattern(realm) {
-  return `user:*@${realm}`;
+  return realm ? `user:*@${realm}` : 'user:*';
 }
 
 class Registrar extends Emitter {
@@ -110,7 +109,6 @@ class Registrar extends Emitter {
   }
 
   async getCountOfUsers(realm) {
-    assert.ok(realm, 'Registrar:getCountOfUsers realm is a required parameter');
     try {
       const users = new Set();
       let idx = 0;
