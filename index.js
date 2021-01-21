@@ -1,7 +1,7 @@
 const debug = require('debug')('jambonz:mw-registrar');
 const assert = require('assert');
 const Emitter = require('events');
-const promisifyRedis = require('promisify-redis');
+const promisifyRedis = require('@jambonz/promisify-redis');
 const redis = promisifyRedis(require('redis'));
 const redisOpts = Object.assign('test' === process.env.NODE_ENV ?
   {
