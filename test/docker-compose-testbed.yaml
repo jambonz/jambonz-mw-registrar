@@ -1,0 +1,17 @@
+version: '3'
+
+networks:
+  jambonz:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.36.0.0/16
+
+services:
+  redis:
+    image: redis:5-alpine
+    ports:
+      - "16379:6379/tcp"
+    networks:
+      jambonz:
+        ipv4_address: 172.36.0.10
