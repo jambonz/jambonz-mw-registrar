@@ -28,10 +28,15 @@ class Registrar extends Emitter {
     this.logger = logger;
     debug(`connecting to redis with options: ${JSON.stringify(opts)}`);
     this.client = redis.createClient(Object.assign(redisOpts, opts));
-    ['ready', 'connect', 'reconnecting', 'error', 'end', 'warning']
+    ['ready', 'connect', 'reconnecting', 'end', 'warning']
       .forEach((event) => {
         this.client.on(event, (...args) => this.emit(event, ...args));
       });
+    this.client.on('error', (err) => {
+      if ('test' !== process.env.NODE_ENV || 'CONNECTION_BROKEN' !== err.code) {
+        this.emit('error', err);
+      }
+    });
   }
 
   /* for use by test suite only */

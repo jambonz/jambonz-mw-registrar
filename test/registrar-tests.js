@@ -111,7 +111,7 @@ test('registrar tests', (t) => {
       t.ok(count === 1000, `counted all 1,000 users in ${Math.round(timeEnd[1] / 1000000)}ms`);
     })
     .then(() => {
-      registrar._quit();
+      //registrar._quit();
       return t.end();
     });
 });
