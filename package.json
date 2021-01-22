@@ -1,6 +1,6 @@
 {
   "name": "@jambonz/mw-registrar",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "jambonz middleware that provides access to the database of active registrations maintained as part of the SBC function",
   "main": "index.js",
   "scripts": {
@@ -20,7 +20,7 @@
   "author": "Dave Horton",
   "license": "MIT",
   "dependencies": {
-    "@jambonz/promisify-redis": "0.0.5",
+    "@jambonz/promisify-redis": "0.0.6",
     "debug": "^4.3.1",
     "redis": "^3.0.2"
   },

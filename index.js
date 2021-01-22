@@ -1,7 +1,7 @@
 const debug = require('debug')('jambonz:mw-registrar');
 const Emitter = require('events');
-const promisifyRedis = require('@jambonz/promisify-redis');
-const redis = require('redis');
+const promisify = require('@jambonz/promisify-redis');
+const redis = promisify(require('redis'));
 const redisOpts = Object.assign('test' === process.env.NODE_ENV ?
   {
     retry_strategy: () => {},
@@ -27,7 +27,7 @@ class Registrar extends Emitter {
     }
     this.logger = logger;
     debug(`connecting to redis with options: ${JSON.stringify(opts)}`);
-    this.client = promisifyRedis(redis.createClient(Object.assign(redisOpts, opts)));
+    this.client = redis.createClient(Object.assign(redisOpts, opts));
     ['ready', 'connect', 'reconnecting', 'error', 'end', 'warning']
       .forEach((event) => {
         this.client.on(event, (...args) => this.emit(event, ...args));
@@ -56,7 +56,7 @@ class Registrar extends Emitter {
         .multi()
         .hmset(key, obj)
         .expire(key, expires)
-        .exec();
+        .execAsync();
       debug(`Registrar#add - result of adding ${aor}: ${JSON.stringify(result)}`);
       return result[0] === 'OK';
     } catch (err) {
@@ -73,7 +73,7 @@ class Registrar extends Emitter {
    */
   async query(aor) {
     const key = makeUserKey(aor);
-    const result = await this.client.hgetall(key);
+    const result = await this.client.hgetallAsync(key);
     debug(`Registrar#query: ${aor} returned ${JSON.stringify(result)}`);
     return result;
   }
@@ -86,7 +86,7 @@ class Registrar extends Emitter {
   async remove(aor) {
     const key = makeUserKey(aor);
     try {
-      const result = await this.client.del(key);
+      const result = await this.client.delAsync(key);
       debug(`Registrar#remove ${aor} result: ${result}`);
       return result === 1;
     } catch (err) {
@@ -98,7 +98,7 @@ class Registrar extends Emitter {
   async keys(prefix) {
     try {
       prefix = prefix || '*';
-      const result = await this.client.keys(prefix);
+      const result = await this.client.keysAsync(prefix);
       debug(`keys ${prefix}: ${JSON.stringify(result)}`);
       return result;
     } catch (err) {
@@ -114,7 +114,7 @@ class Registrar extends Emitter {
       let idx = 0;
       const pattern = makeUserPattern(realm);
       do {
-        const [next, keys] = await this.client.scan([idx, 'MATCH', pattern, 'COUNT', 100]);
+        const [next, keys] = await this.client.scanAsync([idx, 'MATCH', pattern, 'COUNT', 100]);
         debug(next, keys,  `Registrar:getCountOfUsers result from scan cursor ${idx} ${realm}`);
         keys.forEach((k) => users.add(k));
         idx = parseInt(next);
