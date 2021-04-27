@@ -1,4 +1,4 @@
-const test = require('blue-tape');
+const test = require('tape');
 const debug = require('debug')('jambonz:middleware');
 
 process.on('unhandledRejection', (reason, p) => {
