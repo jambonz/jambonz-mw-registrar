@@ -4,7 +4,7 @@
   "description": "jambonz middleware that provides access to the database of active registrations maintained as part of the SBC function",
   "main": "index.js",
   "scripts": {
-    "test": "NODE_ENV=test node test/ | ./node_modules/.bin/tap-spec",
+    "test": "NODE_ENV=test node test/ ",
     "coverage": "./node_modules/.bin/nyc --reporter html --report-dir ./coverage npm run test",
     "jslint": "eslint index.js"
   },
@@ -25,10 +25,9 @@
     "redis": "^3.1.1"
   },
   "devDependencies": {
-    "eslint": "^6.8.0",
-    "eslint-plugin-promise": "^4.2.1",
-    "nyc": "^14.1.1",
-    "tap-spec": "^5.0.0",
-    "tape": "^4.13.3"
+    "eslint": "^7.26.0",
+    "eslint-plugin-promise": "^5.1.0",
+    "nyc": "^15.1.0",
+    "tape": "^5.2.2"
   }
 }
