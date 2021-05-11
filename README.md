@@ -1,5 +1,7 @@
 # jambonz-mw-registrar [![Build Status](https://secure.travis-ci.org/jambonz/jambonz-mw-registrar.png)](http://travis-ci.org/jambonz/jambonz-mw-registrar)
 
+DEPRECATED!  jambonz/mw-registrar is now used instead.
+
 Jambonz class that handles inserting, removing, and querying the database of active sip registrations
 
 ```
