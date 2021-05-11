@@ -1,5 +1,7 @@
 # mw-registrar ![CI](https://github.com/jambonz/mw-registrar/workflows/CI/badge.svg)
 
+DEPRECATED!  jambonz/mw-registrar is now used instead.
+
 Jambonz class that handles inserting, removing, and querying the database of active sip registrations
 
 ```
