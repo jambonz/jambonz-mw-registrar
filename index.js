@@ -57,13 +57,9 @@ class Registrar extends Emitter {
     debug(`Registrar#add ${aor} from ${JSON.stringify(obj)} for ${expires}`);
     const key = makeUserKey(aor);
     try {
-      const result = await this.client
-        .multi()
-        .hmset(key, obj)
-        .expire(key, expires)
-        .execAsync();
-      debug(`Registrar#add - result of adding ${aor}: ${JSON.stringify(result)}`);
-      return result[0] === 'OK';
+      const result = await this.client.setexAsync(key, expires, JSON.stringify(obj));
+      debug({result, expires, obj}, `Registrar#add - result of adding ${aor}`);
+      return result === 'OK';
     } catch (err) {
       this.logger.error(err, `Error adding user ${aor}`);
       return false;
@@ -77,10 +73,13 @@ class Registrar extends Emitter {
    * if the user does not have an active registration.
    */
   async query(aor) {
-    const key = makeUserKey(aor);
-    const result = await this.client.hgetallAsync(key);
-    debug(`Registrar#query: ${aor} returned ${JSON.stringify(result)}`);
-    return result;
+    try {
+      const key = makeUserKey(aor);
+      const result = await this.client.getAsync(key);
+      return JSON.parse(result);
+    } catch (err) {
+      this.logger.error({err}, `@jambonz/mw-registrar query: Error retrieving ${aor}`);
+    }
   }
 
   /**
