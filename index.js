@@ -27,7 +27,17 @@ class Registrar extends Emitter {
     }
     this.logger = logger;
     debug(`connecting to redis with options: ${JSON.stringify(opts)}`);
-    this.client = redis.createClient(Object.assign(redisOpts, opts));
+    const {
+      host,
+      port,
+      tls = process.env.JAMBONES_REDIS_USE_TLS,
+      username = process.env.JAMBONES_REDIS_USERNAME,
+      password = process.env.JAMBONES_REDIS_PASSWORD
+    } = opts;
+    const url = username && password ?
+      `${username}:${password}@${host}:${port}` :
+      `${host}:${port}`;
+    this.client = redis.createClient(tls ? `rediss://${url}` : `redis://${url}`, redisOpts);
     ['ready', 'connect', 'reconnecting', 'end', 'warning']
       .forEach((event) => {
         this.client.on(event, (...args) => this.emit(event, ...args));
