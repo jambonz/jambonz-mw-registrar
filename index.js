@@ -67,6 +67,8 @@ class Registrar extends Emitter {
     debug(`Registrar#add ${aor} from ${JSON.stringify(obj)} for ${expires}`);
     const key = makeUserKey(aor);
     try {
+      const now = Date.now();
+      obj.expiryTime = now + (expires * 1000);
       const result = await this.client.setexAsync(key, expires, JSON.stringify(obj));
       debug({result, expires, obj}, `Registrar#add - result of adding ${aor}`);
       return result === 'OK';
