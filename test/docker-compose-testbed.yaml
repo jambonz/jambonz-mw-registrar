@@ -9,9 +9,9 @@ networks:
 
 services:
   redis:
-    image: redis:5-alpine
+    image: redis:alpine
     ports:
-      - "16379:6379/tcp"
+      - "16379:6379"
     networks:
       jambonz:
         ipv4_address: 172.36.0.10
