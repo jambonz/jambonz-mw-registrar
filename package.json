@@ -1,6 +1,6 @@
 {
   "name": "@jambonz/mw-registrar",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "jambonz middleware that provides access to the database of active registrations maintained as part of the SBC function",
   "main": "index.js",
   "scripts": {
