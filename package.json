@@ -20,13 +20,13 @@
   "author": "Dave Horton",
   "license": "MIT",
   "dependencies": {
-    "debug": "^4.3.1"
+    "debug": "^4.3.4"
   },
   "devDependencies": {
     "eslint": "^7.26.0",
     "eslint-plugin-promise": "^5.1.0",
     "nyc": "^15.1.0",
     "tape": "^5.2.2",
-    "@jambonz/realtimedb-helpers": "^0.8.1"
+    "@jambonz/realtimedb-helpers": "^0.8.7"
   }
 }

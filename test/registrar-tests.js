@@ -45,6 +45,9 @@ test("registrar tests", async (t) => {
   result = await registrar.query("dhorton@drachtio.org");
   t.ok(result !== null, `successfully retrieved ${JSON.stringify(result)}`);
 
+  result = await registrar.getRegisteredUsersForRealm("drachtio.org");
+  t.ok(result.length === 1, `successfully retrieved registered users ${JSON.stringify(result)}`);
+
   await new Promise((resolve) => setTimeout(() => resolve(), 2500));
 
   result = await registrar.query("dhorton@drachtio.org");
@@ -56,7 +59,7 @@ test("registrar tests", async (t) => {
   result = await registrar.getCountOfUsers();
   t.ok(result === 0, "count of total users returned 0");
 
-  // readd
+  // read
   result = await registrar.add(
     "dhorton@drachtio.org",
     {
@@ -92,6 +95,5 @@ test("registrar tests", async (t) => {
     result === 1000,
     `counted all 1,000 users in ${Math.round(timeEnd[1] / 1000000)}ms`
   );
-
   t.end();
 });
