@@ -37,12 +37,12 @@ class Registrar extends Emitter {
     debug(`Registrar#add ${aor} from ${JSON.stringify(obj)} for ${expires}`);
     const key = makeUserKey(aor);
     try {
-      const now = Date.now();
-      obj.expiryTime = now + (expires * 1000);
+      obj.expiryTime = Date.now() + (expires * 1000);
       const result = await this.client.setex(key, expires, JSON.stringify(obj));
-      const addResult = this.addToSortedSet(aor, obj.expiryTime);
-      debug({result, addResult, expires, obj}, `Registrar#add - result of adding ${aor}`);
-      return result === 'OK' && addResult;
+      const zResult = await this.client.zadd('active-user', obj.expiryTime, aor);
+      const expiredZResult = await this.client.zremrangebyscore('active-user', 0, Date.now());
+      debug({result, zResult, expiredZResult, expires, obj}, `Registrar#add - result of adding ${aor}`);
+      return result === 'OK' && zResult === 1;
     } catch (err) {
       this.logger.error(err, `Error adding user ${aor}`);
       return false;
@@ -113,25 +113,6 @@ class Registrar extends Emitter {
     return this.getRegisteredUsersForRealm(realm).length;
   }
 
-  /**
-   * add user to sorted set with an expiry in epoch milliseconds
-   * @param {String} aor - the address-of-record for the user
-   * @param {Number} expires - epoch milliseconds when object expires
-   * @returns {Boolean} true if the registration was successfully added
-   */
-  async addToSortedSet(aor, expires) {
-    try {
-      //Cleanup expired entries
-      const expiredKeysResult = await this.client.zremrangebyscore('active-user', 0, Date.now());
-      //Add new record, or if exists, simply updates the expiry (score)
-      const addResult = await this.client.zadd('active-user', expires, aor);
-      debug(`addToActiveUserHash - expiredKeysCount=${expiredKeysResult}, addResult=${addResult}`);
-      return addResult === 1;
-    } catch (err) {
-      this.logger.error(err, `Error addToActiveUserHash ${aor}`);
-      return false;
-    }
-  }
 
   /**
    * if realm exists then return all user parts belonging to a realm,
@@ -141,10 +122,8 @@ class Registrar extends Emitter {
    */
   async getRegisteredUsersForRealm(realm) {
     try {
-
-      //Cleanup expired entries
+      //cleanup expired entries
       await this.client.zremrangebyscore('active-user', 0, Date.now());
-
       const users = new Set();
       const keys = await this.client.zrange('active-user', 0, -1);
       const pattern = realm ? new RegExp('user:(.*)@.*$') : new RegExp('^user:(.*)@' + realm + '$');
