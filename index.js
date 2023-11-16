@@ -40,8 +40,8 @@ class Registrar extends Emitter {
       const now = Date.now();
       obj.expiryTime = now + (expires * 1000);
       const result = await this.client.setex(key, expires, JSON.stringify(obj));
-      debug({result, expires, obj}, `Registrar#add - result of adding ${aor}`);
-      const addResult = this.addToActiveUserHash(aor, obj.expiryTime);
+      const addResult = this.addToSortedSet(aor, obj.expiryTime);
+      debug({result, addResult, expires, obj}, `Registrar#add - result of adding ${aor}`);
       return result === 'OK' && addResult;
     } catch (err) {
       this.logger.error(err, `Error adding user ${aor}`);
@@ -75,9 +75,9 @@ class Registrar extends Emitter {
     const key = makeUserKey(aor);
     try {
       const result = await this.client.del(key);
-      const hashResult = await this.removeUserFromHash(aor);
-      debug(`Registrar#remove ${aor} result: ${result} hasResult ${hashResult}`);
-      return result === 1 && hashResult;
+      const sortedSetResult = await this.client.zrem('active-user', aor);
+      debug(`Registrar#remove ${aor} result=${result} expiredKeys=${sortedSetResult}`);
+      return result === 1;
     } catch (err) {
       this.logger.error(err, `Error removing aor ${aor}`);
       return false;
@@ -114,18 +114,19 @@ class Registrar extends Emitter {
   }
 
   /**
-   * if realm exists then returns all users belonging to a realm,
-   * otherwise returns all registered users
+   * add user to sorted set with an expiry in epoch milliseconds
    * @param {String} aor - the address-of-record for the user
-   * @param {String} expires - epoch milliseconds when object expires
+   * @param {Number} expires - epoch milliseconds when object expires
    * @returns {Boolean} true if the registration was successfully added
    */
-  async addToActiveUserHash(aor, expires) {
+  async addToSortedSet(aor, expires) {
     try {
-      const cleanupResult = this.cleanActiveUserHash(aor);
-      const addResult = await this.client.hset('active-user', `${expires}`, aor);
-      debug(`addToActiveUserHash - cleanupResult=${cleanupResult}, cleanupResult=${addResult}`);
-      return cleanupResult && addResult === 1;
+      //Cleanup expired entries
+      const expiredKeysResult = await this.client.zremrangebyscore('active-user', 0, Date.now());
+      //Add new record, or if exists, simply updates the expiry (score)
+      const addResult = await this.client.zadd('active-user', expires, aor);
+      debug(`addToActiveUserHash - expiredKeysCount=${expiredKeysResult}, addResult=${addResult}`);
+      return addResult === 1;
     } catch (err) {
       this.logger.error(err, `Error addToActiveUserHash ${aor}`);
       return false;
@@ -133,17 +134,21 @@ class Registrar extends Emitter {
   }
 
   /**
-   * if param realm exists then returns all users belonging to a realm,
-   * otherwise returns all registered users
-   * @param {String} realm - nullable realm (e.g. drachtio.org)
+   * if realm exists then return all user parts belonging to a realm,
+   * otherwise returns all registered user parts
+   * @param {String | undefined} realm - realm (e.g. drachtio.org)
    * @returns {[String]} Set of userParts
    */
   async getRegisteredUsersForRealm(realm) {
     try {
+
+      //Cleanup expired entries
+      await this.client.zremrangebyscore('active-user', 0, Date.now());
+
       const users = new Set();
-      const activeUsers = await this.client.hgetall('active-user');
+      const keys = await this.client.zrange('active-user', 0, -1);
       const pattern = realm ? new RegExp('user:(.*)@.*$') : new RegExp('^user:(.*)@' + realm + '$');
-      Object.keys(activeUsers).forEach((k) => {
+      keys.forEach((k) => {
         const arr = pattern.exec(k);
         if (arr) users.add(arr[1]);
       });
@@ -151,51 +156,6 @@ class Registrar extends Emitter {
     } catch (err) {
       debug(err);
       this.logger.error(err, 'getRegisteredUsersForRealm: Error retrieving registered users');
-    }
-  }
-
-
-  /**
-   * Cleans any 'active-user' hash fields which have expired
-   * @param {String} aor - a sip address-of-record for a user (e.g. daveh@drachtio.org)
-   * @returns {Boolean} true if the cleanup was successful
-   */
-  async cleanActiveUserHash(aor) {
-    try {
-      const activeUsers = await this.client.hgetall('active-user');
-      const now = Date.now();
-      const fieldsToRemove = [];
-      const aorKeysToRemove = [];
-      Object.keys(activeUsers).forEach((k) => {
-        const valueExpires = Number(activeUsers[k]);
-        if (valueExpires < now) {
-          fieldsToRemove.push(k);
-          aorKeysToRemove.push(makeUserKey(k));
-        }
-      });
-      const removeExpiredResult = await this.client.hdel('active-user', fieldsToRemove);
-      const removeAORKeysResult = await this.client.del(aorKeysToRemove);
-      const success = removeExpiredResult === fieldsToRemove.length && removeAORKeysResult === aorKeysToRemove.length;
-      debug({aorKeysToRemove}, `Registrar#cleanActiveUserHash - ${fieldsToRemove.length} fields, success = ${success}`);
-      return success;
-    } catch (err) {
-      this.logger.error(err, 'Error cleanActiveUserHash');
-      return false;
-    }
-  }
-
-  /**
-   * removes a field from hash if value matches aor
-   * @param {String} aor - a sip address-of-record for a user (e.g. daveh@drachtio.org)
-   * @returns {Boolean} true if the cleanup was successful
-   */
-  async removeUserFromHash(aor) {
-    try {
-      const removeExpiredResult = await this.client.hdel('active-user', [aor]);
-      return removeExpiredResult === 1;
-    } catch (err) {
-      this.logger.error(err, 'Error removeUserFromHash');
-      return false;
     }
   }
 
