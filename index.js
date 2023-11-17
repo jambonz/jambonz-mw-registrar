@@ -39,7 +39,7 @@ class Registrar extends Emitter {
     try {
       obj.expiryTime = Date.now() + (expires * 1000);
       const result = await this.client.setex(key, expires, JSON.stringify(obj));
-      const zResult = await this.client.zadd('active-user', obj.expiryTime, aor);
+      const zResult = await this.client.zadd('active-user', obj.expiryTime, key);
       const expiredZResult = await this.client.zremrangebyscore('active-user', 0, Date.now());
       debug({result, zResult, expiredZResult, expires, obj}, `Registrar#add - result of adding ${aor}`);
       return result === 'OK' && zResult === 1;
