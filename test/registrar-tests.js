@@ -79,7 +79,7 @@ test('registrar tests', async(t) => {
   const barFooStart = process.hrtime();
   for (let i = 0; i < barFooUserCount; i++) {
     if (i % 1000 === 0) {
-      t.comment(`Added ${i} foobar users`);
+      t.comment(`Added ${i} barfoo.com users`);
     }
     await registrar.add(
       `user-${i}@barfoo.com`,
@@ -97,7 +97,7 @@ test('registrar tests', async(t) => {
   const fooBarStart = process.hrtime();
   for (let i = 0; i < fooBarUserCount; i++) {
     if (i % 100 === 0) {
-      t.comment(`Added ${i} foobar users`);
+      t.comment(`Added ${i} foobar.com users`);
     }
     await registrar.add(
       `user-${i}@foobar.com`,
@@ -115,19 +115,29 @@ test('registrar tests', async(t) => {
   const countBarFooTimeStart = process.hrtime();
   result = await registrar.getCountOfUsers('barfoo.com');
   const countBarFooTimeEnd = process.hrtime(countBarFooTimeStart);
+  const responseTimeBarFoo = Math.round(countBarFooTimeEnd[1] / 1000000);
   t.ok(
     result === barFooUserCount,
-    `counted all ${barFooUserCount} users in ${Math.round(countBarFooTimeEnd[1] / 1000000)}ms`,
+    `counted all ${barFooUserCount} barfoo.com users in ${responseTimeBarFoo}ms`,
   );
+  t.ok(
+    responseTimeBarFoo < 500,
+    `${barFooUserCount} barfoo.com users response time under 500ms`,
+  );
+
 
   const countFooBarTimeStart = process.hrtime();
   result = await registrar.getCountOfUsers('foobar.com');
   const countFooBarTimeEnd = process.hrtime(countFooBarTimeStart);
+  const responseTimeFooBar = Math.round(countFooBarTimeEnd[1] / 1000000);
   t.ok(
     result === fooBarUserCount,
-    `counted all ${fooBarUserCount} users in ${Math.round(countFooBarTimeEnd[1] / 1000000)}ms`,
+    `counted all ${fooBarUserCount} foobar.com users in ${responseTimeFooBar}ms`,
   );
-
+  t.ok(
+    responseTimeFooBar < 250,
+    `${fooBarUserCount} foobar.com users response time under 500ms`,
+  );
 
   t.end();
 });
