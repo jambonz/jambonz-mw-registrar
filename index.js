@@ -37,10 +37,11 @@ class Registrar extends Emitter {
     debug(`Registrar#add ${aor} from ${JSON.stringify(obj)} for ${expires}`);
     const key = makeUserKey(aor);
     try {
+      //cleanup expired entries
+      const expiredZResult = await this.client.zremrangebyscore('active-user', 0, Date.now());
       obj.expiryTime = Date.now() + (expires * 1000);
       const result = await this.client.setex(key, expires, JSON.stringify(obj));
       const zResult = await this.client.zadd('active-user', obj.expiryTime, key);
-      const expiredZResult = await this.client.zremrangebyscore('active-user', 0, Date.now());
       debug({result, zResult, expiredZResult, expires, obj}, `Registrar#add - result of adding ${aor}`);
       return result === 'OK' && zResult === 1;
     } catch (err) {
@@ -110,7 +111,9 @@ class Registrar extends Emitter {
    * @returns {int} count of users
    */
   async getCountOfUsers(realm) {
-    return this.getRegisteredUsersForRealm(realm).length;
+    const users = await this.getRegisteredUsersForRealm(realm);
+    debug(`Registrar#getCountOfUsers result=${users.length} realm=${realm}`);
+    return users.length;
   }
 
 
@@ -124,13 +127,21 @@ class Registrar extends Emitter {
     try {
       //cleanup expired entries
       await this.client.zremrangebyscore('active-user', 0, Date.now());
+      const keyPattern = realm ? `*${realm}` : '*';
+      const pattern = realm ? new RegExp('^(.*)@' + realm + '$') : new RegExp('^(.*)@.*$');
       const users = new Set();
-      const keys = await this.client.zrange('active-user', 0, -1);
-      const pattern = realm ? new RegExp('user:(.*)@.*$') : new RegExp('^user:(.*)@' + realm + '$');
-      keys.forEach((k) => {
-        const arr = pattern.exec(k);
-        if (arr) users.add(arr[1]);
-      });
+      let idx = 0;
+      do {
+        const res = await this.client.zscan('active-user', [idx, 'MATCH', keyPattern, 'COUNT', 100]);
+        const next = res[0];
+        const keys = res[1];
+        debug(next, keys, `Registrar:getCountOfUsers result from scan cursor ${idx} ${realm}`);
+        keys.forEach((k) => {
+          const arr = pattern.exec(k);
+          if (arr) users.add(arr[1]);
+        });
+        idx = parseInt(next);
+      } while (idx !== 0);
       return [...users];
     } catch (err) {
       debug(err);
