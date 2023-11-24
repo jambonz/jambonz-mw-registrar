@@ -150,9 +150,7 @@ class Registrar extends Emitter {
         const keys = res[1];
         debug(next, keys,  `Registrar:getCountOfUsers result from scan cursor ${idx} ${realm}`);
         for (const k of keys) {
-          if (/^user:.*$/.test(k)) {
-            users.add(await this.client.get(k));
-          }
+          users.add(await this.client.get(k));
         }
         idx = parseInt(next);
       } while (idx !== 0);
