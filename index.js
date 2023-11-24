@@ -138,6 +138,30 @@ class Registrar extends Emitter {
       this.logger.error(err, 'getRegisteredUsersForRealm: Error retrieving registered users');
     }
   }
+
+  async getRegisteredUsersDetailsForRealm(realm) {
+    try {
+      const users = new Set();
+      let idx = 0;
+      const pattern = makeUserPattern(realm);
+      do {
+        const res = await this.client.scan([idx, 'MATCH', pattern, 'COUNT', 100]);
+        const next = res[0];
+        const keys = res[1];
+        debug(next, keys,  `Registrar:getCountOfUsers result from scan cursor ${idx} ${realm}`);
+        for (const k of keys) {
+          if (/^user:.*$/.test(k)) {
+            users.add(await this.client.get(k));
+          }
+        }
+        idx = parseInt(next);
+      } while (idx !== 0);
+      return [...users];
+    } catch (err) {
+      debug(err);
+      this.logger.error(err, 'getRegisteredUsersDetailsForRealm: Error retrieving registered users');
+    }
+  }
 }
 
 module.exports = Registrar;
