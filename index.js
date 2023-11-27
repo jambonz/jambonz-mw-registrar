@@ -76,7 +76,7 @@ class Registrar extends Emitter {
       const result = await this.client.del(key);
       const sortedSetResult = await this.client.zrem('active-user', aor);
       debug(`Registrar#remove ${aor} result=${result} expiredKeys=${sortedSetResult}`);
-      return result === 1;
+      return result === 1 && sortedSetResult === 1;
     } catch (err) {
       this.logger.error(err, `Error removing aor ${aor}`);
       return false;
