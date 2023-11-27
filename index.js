@@ -17,6 +17,16 @@ class Registrar extends Emitter {
     }
     this.logger = logger;
     this.client = redisClient;
+
+    //cleanup expired entries
+    const cleanRateSeconds = 60 * 1000 * 10; //10 minutes
+    setInterval((rClient) => {
+      try {
+        rClient.zremrangebyscore('active-user', 0, Date.now());
+      } catch (err) {
+        this.logger.error(err, 'Error cleaning user interval');
+      }
+    }, cleanRateSeconds, redisClient);
   }
 
   /* for use by test suite only */
