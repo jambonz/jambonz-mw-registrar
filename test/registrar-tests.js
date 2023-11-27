@@ -1,17 +1,8 @@
 const test = require('tape');
-// const debug = require('debug')('jambonz:middleware');
 
 process.on('unhandledRejection', (reason, p) => {
   console.log('Unhandled Rejection at: Promise', p, 'reason:', reason);
 });
-
-// function connect(connectable) {
-//   return new Promise((resolve, reject) => {
-//     connectable.on('connect', () => {
-//       return resolve();
-//     });
-//   });
-// }
 
 test('registrar tests', async(t) => {
   const Registrar = require('..');
