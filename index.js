@@ -136,7 +136,6 @@ class Registrar extends Emitter {
       //cleanup expired entries
       await this.client.zremrangebyscore('active-user', 0, Date.now());
       const keyPattern = realm ? `*${realm}` : '*';
-      const pattern = realm ? new RegExp('^(.*)@' + realm + '$') : new RegExp('^(.*)@.*$');
       const users = new Set();
       let idx = 0;
       do {
@@ -145,8 +144,10 @@ class Registrar extends Emitter {
         const keys = res[1];
         debug(next, keys, `Registrar:getCountOfUsers result from scan cursor ${idx} ${realm}`);
         keys.forEach((k) => {
-          const arr = pattern.exec(k);
-          if (arr) users.add(arr[1]);
+          //Ignore Scores
+          if (k.startsWith('user:')) {
+            users.add(k);
+          }
         });
         idx = parseInt(next);
       } while (idx !== 0);
