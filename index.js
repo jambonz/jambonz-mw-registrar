@@ -37,12 +37,10 @@ class Registrar extends Emitter {
     debug(`Registrar#add ${aor} from ${JSON.stringify(obj)} for ${expires}`);
     const key = makeUserKey(aor);
     try {
-      //cleanup expired entries
-      const expiredZResult = await this.client.zremrangebyscore('active-user', 0, Date.now());
       obj.expiryTime = Date.now() + (expires * 1000);
       const result = await this.client.setex(key, expires, JSON.stringify(obj));
       const zResult = await this.client.zadd('active-user', obj.expiryTime, key);
-      debug({result, zResult, expiredZResult, expires, obj}, `Registrar#add - result of adding ${aor}`);
+      debug({result, zResult, expires, obj}, `Registrar#add - result of adding ${aor}`);
       return result === 'OK' && zResult === 1;
     } catch (err) {
       this.logger.error(err, `Error adding user ${aor}`);
