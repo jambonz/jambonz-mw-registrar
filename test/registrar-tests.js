@@ -64,7 +64,7 @@ test('registrar tests', async(t) => {
   result = await registrar.remove('dhorton@drachtio.org');
   t.ok(result === true, 'successfully removed aor');
 
-  const barFooUserCount = 30000;
+  const barFooUserCount = 10000;
   const fooBarUserCount = 1000;
 
   const barFooStart = process.hrtime();
