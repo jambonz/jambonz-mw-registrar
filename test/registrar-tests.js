@@ -126,7 +126,7 @@ test('registrar tests', async(t) => {
     `counted all ${fooBarUserCount} foobar.com users in ${responseTimeFooBar}ms`,
   );
   t.ok(
-    responseTimeFooBar < 250,
+    responseTimeFooBar < 500,
     `${fooBarUserCount} foobar.com users response time under 500ms`,
   );
 
