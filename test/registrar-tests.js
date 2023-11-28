@@ -37,6 +37,11 @@ test('registrar tests', async(t) => {
 
   result = await registrar.getRegisteredUsersForRealm('drachtio.org');
   t.ok(result.length === 1, `successfully retrieved registered users ${JSON.stringify(result)}`);
+  t.ok(result[0] === 'dhorton', `successfully retrieved registered users ${JSON.stringify(result)}`);
+
+  result = await registrar.getRegisteredUsersDetailsForRealm('drachtio.org');
+  t.ok(result.length === 1, `successfully retrieved registered users defailt ${JSON.stringify(result)}`);
+  t.ok(result[0].name === 'dhorton', `successfully retrieved registered users defailt ${JSON.stringify(result)}`);
 
   await new Promise((resolve) => setTimeout(() => resolve(), 2500));
 

@@ -144,10 +144,8 @@ class Registrar extends Emitter {
         const keys = res[1];
         debug(next, keys, `Registrar:getCountOfUsers result from scan cursor ${idx} ${realm}`);
         keys.forEach((k) => {
-          //Ignore Scores
-          if (k.startsWith('user:')) {
-            users.add(k);
-          }
+          const arr = /^user:(.*)@.*$/.exec(k);
+          if (arr) users.add(arr[1]);
         });
         idx = parseInt(next);
       } while (idx !== 0);
@@ -158,7 +156,26 @@ class Registrar extends Emitter {
     }
   }
 
-
+  async getRegisteredUsersDetailsForRealm(realm) {
+    try {
+      const users = new Set();
+      const userNames = await this.getRegisteredUsersForRealm(realm);
+      for (const u of userNames) {
+        const user = JSON.parse(await this.client.get(`user:${u}@${realm}`));
+        if (user) {
+          delete user.sbcAddress;
+          users.add({
+            name: u,
+            ...user
+          });
+        }
+      }
+      return [...users];
+    } catch (err) {
+      debug(err);
+      this.logger.error(err, 'getRegisteredUsersDetailsForRealm: Error retrieving registered users');
+    }
+  }
 }
 
 module.exports = Registrar;
