@@ -1,13 +1,11 @@
 const debug = require('debug')('jambonz:mw-registrar');
 const Emitter = require('events');
 
-const noop = () => {};
+const noop = () => {
+};
 
 function makeUserKey(aor) {
   return `user:${aor}`;
-}
-function makeUserPattern(realm) {
-  return realm ? `user:*@${realm}` : 'user:*';
 }
 
 class Registrar extends Emitter {
@@ -19,6 +17,16 @@ class Registrar extends Emitter {
     }
     this.logger = logger;
     this.client = redisClient;
+
+    //cleanup expired entries
+    const cleanRateSeconds = 60 * 1000 * 10; //10 minutes
+    setInterval((rClient) => {
+      try {
+        rClient.zremrangebyscore('active-user', 0, Date.now());
+      } catch (err) {
+        this.logger.error(err, 'Error cleaning user interval');
+      }
+    }, cleanRateSeconds, redisClient);
   }
 
   /* for use by test suite only */
@@ -29,9 +37,9 @@ class Registrar extends Emitter {
   /**
    * Add a registration for a user identified by a sip address-of-record
    * @param {String} aor - a sip address-of-record for a user (e.g. daveh@drachtio.org)
-   * @param {String} contact - the sip address where this user can be reached
-   * @param {String} sbcAddress - the sip uri address of the sbc that manages the connection to this user
-   * @param {String} protocol - the transport protocol used between the sbc and the user
+   * @param {String} obj.contact - the sip address where this user can be reached
+   * @param {String} obj.sbcAddress - the sip uri address of the sbc that manages the connection to this user
+   * @param {String} obj.protocol - the transport protocol used between the sbc and the user
    * @param {String} expires - number of seconds the registration for this user is active
    * @returns {Boolean} true if the registration was successfully added
    */
@@ -39,16 +47,17 @@ class Registrar extends Emitter {
     debug(`Registrar#add ${aor} from ${JSON.stringify(obj)} for ${expires}`);
     const key = makeUserKey(aor);
     try {
-      const now = Date.now();
-      obj.expiryTime = now + (expires * 1000);
+      obj.expiryTime = Date.now() + (expires * 1000);
       const result = await this.client.setex(key, expires, JSON.stringify(obj));
-      debug({result, expires, obj}, `Registrar#add - result of adding ${aor}`);
-      return result === 'OK';
+      const zResult = await this.client.zadd('active-user', obj.expiryTime, key);
+      debug({result, zResult, expires, obj}, `Registrar#add - result of adding ${aor}`);
+      return result === 'OK' && zResult === 1;
     } catch (err) {
       this.logger.error(err, `Error adding user ${aor}`);
       return false;
     }
   }
+
 
   /**
    * Retrieve the registration details for a user
@@ -68,21 +77,28 @@ class Registrar extends Emitter {
 
   /**
    * Remove the registration for a user
-  * @param {String} aor - the address-of-record for the user
-  * @returns {Boolean} true if the registration was successfully removed
-  */
+   * @param {String} aor - the address-of-record for the user
+   * @returns {Boolean} true if the registration was successfully removed
+   */
   async remove(aor) {
     const key = makeUserKey(aor);
     try {
       const result = await this.client.del(key);
-      debug(`Registrar#remove ${aor} result: ${result}`);
-      return result === 1;
+      const sortedSetResult = await this.client.zrem('active-user', key);
+      debug(`Registrar#remove ${aor} result=${result} expiredKeys=${sortedSetResult}`);
+      return result === 1 && sortedSetResult === 1;
     } catch (err) {
       this.logger.error(err, `Error removing aor ${aor}`);
       return false;
     }
   }
 
+  //todo
+  // keys shouldn't be used on a production redis as can degrade performance
+  // if this method is needed, suggest using scan instead.
+  // A quick search of repo and it looks like this method is used for tts cache counts.
+  // Maybe a simple set which holds expiry timestamps for each tts entry, this can easily be trimmed
+  // on each count invocation before returning the final count. This method could then be removed.
   async keys(prefix) {
     try {
       prefix = prefix || '*';
@@ -96,36 +112,37 @@ class Registrar extends Emitter {
     }
   }
 
+  /**
+   * if param realm exists then returns count of users belonging to a realm,
+   * otherwise returns count of all registered users
+   * @param {String} realm - nullable realm (e.g. drachtio.org)
+   * @returns {int} count of users
+   */
   async getCountOfUsers(realm) {
-    try {
-      const users = new Set();
-      let idx = 0;
-      const pattern = makeUserPattern(realm);
-      do {
-        const res = await this.client.scan([idx, 'MATCH', pattern, 'COUNT', 100]);
-        const next = res[0];
-        const keys = res[1];
-        debug(next, keys,  `Registrar:getCountOfUsers result from scan cursor ${idx} ${realm}`);
-        keys.forEach((k) => users.add(k));
-        idx = parseInt(next);
-      } while (idx !== 0);
-      return users.size;
-    } catch (err) {
-      debug(err);
-      this.logger.error(err, 'getCountOfUsers: Error retrieving registered users');
-    }
+    const users = await this.getRegisteredUsersForRealm(realm);
+    debug(`Registrar#getCountOfUsers result=${users.length} realm=${realm}`);
+    return users.length;
   }
 
+
+  /**
+   * if realm exists then return all user parts belonging to a realm,
+   * otherwise returns all registered user parts
+   * @param {String | undefined} realm - realm (e.g. drachtio.org)
+   * @returns {[String]} Set of userParts
+   */
   async getRegisteredUsersForRealm(realm) {
     try {
+      //cleanup expired entries
+      await this.client.zremrangebyscore('active-user', 0, Date.now());
+      const keyPattern = realm ? `*${realm}` : '*';
       const users = new Set();
       let idx = 0;
-      const pattern = makeUserPattern(realm);
       do {
-        const res = await this.client.scan([idx, 'MATCH', pattern, 'COUNT', 100]);
+        const res = await this.client.zscan('active-user', [idx, 'MATCH', keyPattern, 'COUNT', 100]);
         const next = res[0];
         const keys = res[1];
-        debug(next, keys,  `Registrar:getCountOfUsers result from scan cursor ${idx} ${realm}`);
+        debug(next, keys, `Registrar:getCountOfUsers result from scan cursor ${idx} ${realm}`);
         keys.forEach((k) => {
           const arr = /^user:(.*)@.*$/.exec(k);
           if (arr) users.add(arr[1]);
@@ -142,26 +159,17 @@ class Registrar extends Emitter {
   async getRegisteredUsersDetailsForRealm(realm) {
     try {
       const users = new Set();
-      let idx = 0;
-      const pattern = makeUserPattern(realm);
-      do {
-        const res = await this.client.scan([idx, 'MATCH', pattern, 'COUNT', 100]);
-        const next = res[0];
-        const keys = res[1];
-        debug(next, keys,  `Registrar:getCountOfUsers result from scan cursor ${idx} ${realm}`);
-        for (const k of keys) {
-          const arr = /^user:(.*)@.*$/.exec(k);
-          const user = JSON.parse(await this.client.get(k));
+      const userNames = await this.getRegisteredUsersForRealm(realm);
+      for (const u of userNames) {
+        const user = JSON.parse(await this.client.get(`user:${u}@${realm}`));
+        if (user) {
           delete user.sbcAddress;
-          if (arr) {
-            users.add({
-              name: arr[1],
-              ...user
-            });
-          }
+          users.add({
+            name: u,
+            ...user
+          });
         }
-        idx = parseInt(next);
-      } while (idx !== 0);
+      }
       return [...users];
     } catch (err) {
       debug(err);
